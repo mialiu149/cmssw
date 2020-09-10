@@ -36,3 +36,11 @@ cd $TORCH_DIR
 for lib in libtorchcluster.so libtorchscatter.so libtorchsparse.so libtorchsplineconv.so; do
   curl -O -L https://github.com/lgray/triton-torchgeo-gat-example/raw/cmssw_20.06-v1-py3/artifacts/lib/$lib
 done
+# fetch particle net files, will need updates later, need labels.txt file instead of preprocess?
+PARTICLENET_DIR=${TEST_DIR}/../data/models/particle_net
+cd $TEST_DIR
+mkdir -p $PARTICLENET_DIR
+cd $PARTICLENET_DIR
+curl -O -L https://raw.githubusercontent.com/cms-data/RecoBTag-Combined/master/ParticleNetAK8/General/V01/preprocess.json
+mkdir -p 1
+curl -o 1/particle-net.onnx -L https://github.com/cms-data/RecoBTag-Combined/raw/master/ParticleNetAK8/General/V01/particle-net.onnx
