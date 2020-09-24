@@ -3,7 +3,7 @@ import FWCore.ParameterSet.Config as cms
 import os, sys, json
 
 options = VarParsing("analysis")
-options.register("address", "0.0.0.0", VarParsing.multiplicity.singleton, VarParsing.varType.string)
+options.register("address", "169.228.131.3", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.register("port", 8001, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("timeout", 30, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("params", "", VarParsing.multiplicity.singleton, VarParsing.varType.string)
@@ -27,6 +27,7 @@ if len(options.params)>0:
 models = {
   "TritonImageProducer": "resnet50_netdef",
   "TritonGraphProducer": "gat_test",
+  "TritonParticleNetProducer": "gat_test",
 }
 
 if options.producer not in models:
@@ -75,4 +76,3 @@ for msg in keep_msgs:
 if options.threads>0:
     process.options.numberOfThreads = options.threads
     process.options.numberOfStreams = options.streams
-

@@ -18,15 +18,15 @@ public:
     //for debugging
     setDebugName("TritonParticleNetProducer");
     //load score list
-    std::string imageListFile(cfg.getParameter<std::string>("imageList"));
-    std::ifstream ifile(imageListFile);
+    std::string particleListFile(cfg.getParameter<std::string>("particleList"));
+    std::ifstream ifile(particleListFile);
     if (ifile.is_open()) {
       std::string line;
       while (std::getline(ifile, line)) {
-        imageList_.push_back(line);
+        particleList_.push_back(line);
       }
     } else {
-      throw cms::Exception("MissingFile") << "Could not open image list file: " << imageListFile;
+      throw cms::Exception("MissingFile") << "Could not open particle list file: " << particleListFile;
     }
   }
   void acquire(edm::Event const& iEvent, edm::EventSetup const& iSetup, Input& iInput) override {
@@ -51,7 +51,7 @@ public:
     edm::ParameterSetDescription desc;
     TritonClient::fillPSetDescription(desc);
     desc.add<unsigned>("topN", 5);
-    desc.add<std::string>("imageList");
+    desc.add<std::string>("particleList");
     //to ensure distinct cfi names
     descriptions.addWithDefaultLabel(desc);
   }
@@ -63,12 +63,12 @@ private:
     for (unsigned i0 = 0; i0 < scores.batchSize(); i0++) {
       //match score to type by index, then put in largest-first map
       std::map<float, std::string, std::greater<float>> score_map;
-      for (unsigned i = 0; i < std::min((unsigned)dim, (unsigned)imageList_.size()); ++i) {
-        score_map.emplace(tmp[i0][i], imageList_[i]);
+      for (unsigned i = 0; i < std::min((unsigned)dim, (unsigned)particleList_.size()); ++i) {
+        score_map.emplace(tmp[i0][i], particleList_[i]);
       }
       //get top n
       std::stringstream msg;
-      msg << "Scores for image " << i0 << ":\n";
+      msg << "Scores for particle " << i0 << ":\n";
       unsigned counter = 0;
       for (const auto& item : score_map) {
         msg << item.second << " : " << item.first << "\n";
@@ -79,9 +79,8 @@ private:
       edm::LogInfo(client_.debugName()) << msg.str();
     }
   }
-
   unsigned topN_;
-  std::vector<std::string> imageList_;
+  std::vector<std::string> particleList_;
 };
 
 DEFINE_FWK_MODULE(TritonParticleNetProducer);
