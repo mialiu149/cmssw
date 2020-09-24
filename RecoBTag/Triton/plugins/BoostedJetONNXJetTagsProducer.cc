@@ -1,3 +1,5 @@
+#include "HeterogeneousCore/SonicCore/interface/SonicEDProducer.h"
+#include "HeterogeneousCore/SonicTriton/interface/TritonClient.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/stream/EDProducer.h"
 
@@ -26,9 +28,27 @@
 using namespace cms::Ort;
 using namespace btagbtvdeep;
 
-class BoostedJetONNXTritonJetTagsProducer : public edm::stream::EDProducer<edm::GlobalCache<ONNXRuntime>> {
+//class BoostedJetONNXTritonJetTagsProducer : public edm::stream::EDProducer<edm::GlobalCache<ONNXRuntime>> {
+class BoostedJetONNXTritonJetTagsProducer : public SonicEDProducer<TritonClient> {
 public:
-  explicit BoostedJetONNXTritonJetTagsProducer(const edm::ParameterSet &, const ONNXRuntime *);
+  explicit BoostedJetONNXTritonJetTagsProducer(const edm::ParameterSet &) :
+ : SonicEDProducer<TritonClient>(cfg) {
+    //for debugging
+    setDebugName("BoostedJetONNXTritonJetTagsProducer");
+    //load score list
+    std::string particleListFile(cfg.getParameter<std::string>("particleList"));
+    std::ifstream ifile(particleListFile);
+    if (ifile.is_open()) {
+      std::string line;
+      while (std::getline(ifile, line)) {
+        particleList_.push_back(line);
+      }
+    } else {
+      throw cms::Exception("MissingFile") << "Could not open particle list file: " << particleListFile;
+    }
+  }
+
+}
   ~BoostedJetONNXTritonJetTagsProducer() override;
 
   static void fillDescriptions(edm::ConfigurationDescriptions &);
@@ -65,7 +85,7 @@ private:
   bool debug_ = false;
 };
 
-BoostedJetONNXTritonJetTagsProducer::BoostedJetONNXTritonJetTagsProducer(const edm::ParameterSet &iConfig, const ONNXRuntime *cache)
+BoostedJetONNXTritonJetTagsProducer::BoostedJetONNXTritonJetTagsProducer(const edm::ParameterSet &iConfig)
     : src_(consumes<TagInfoCollection>(iConfig.getParameter<edm::InputTag>("src"))),
       flav_names_(iConfig.getParameter<std::vector<std::string>>("flav_names")),
       debug_(iConfig.getUntrackedParameter<bool>("debugMode", false)) {
@@ -206,7 +226,7 @@ std::unique_ptr<ONNXRuntime> BoostedJetONNXTritonJetTagsProducer::initializeGlob
 
 void BoostedJetONNXTritonJetTagsProducer::globalEndJob(const ONNXRuntime *cache) {}
 
-void BoostedJetONNXTritonJetTagsProducer::produce(edm::Event &iEvent, const edm::EventSetup &iSetup) {
+void BoostedJetONNXTritonJetTagsProducer::acquire(edm::Event &iEvent, const edm::EventSetup &iSetup) {
   edm::Handle<TagInfoCollection> tag_infos;
   iEvent.getByToken(src_, tag_infos);
 
@@ -232,13 +252,35 @@ void BoostedJetONNXTritonJetTagsProducer::produce(edm::Event &iEvent, const edm:
       // convert inputs
       make_inputs(taginfo);
       // run prediction and get outputs
-      outputs = globalCache()->run(input_names_, data_, input_shapes_)[0];
+      auto& input1 = iInput.begin()->second;
+      auto data1 = std::make_shared<TritonInput<float>>();
+      input1.toServer(data1);// is the triton input data
+      // outputs = globalCache()->run(input_names_, data_, input_shapes_)[0];
       assert(outputs.size() == flav_names_.size());
     }
 
     const auto &jet_ref = tag_infos->at(jet_n).jet();
     for (std::size_t flav_n = 0; flav_n < flav_names_.size(); flav_n++) {
       (*(output_tags[flav_n]))[jet_ref] = outputs[flav_n];
+    }
+  }
+}
+void BoostedJetONNXTritonJetTagsProducer::produce(edm::Event &iEvent, const edm::EventSetup &iSetup) {
+  edm::Handle<TagInfoCollection> tag_infos;
+  iEvent.getByToken(src_, tag_infos);
+  const auto& tmp = scores.fromServer<float>();
+  auto dim = scores.sizeDims();
+  // initialize output collection
+  std::vector<std::unique_ptr<JetTagCollection>> output_tags;
+  if (!tag_infos->empty()) {
+    auto jet_ref = tag_infos->begin()->jet();
+    auto ref2prod = edm::makeRefToBaseProdFrom(jet_ref, iEvent);
+    for (std::size_t i = 0; i < flav_names_.size(); i++) {
+      output_tags.emplace_back(std::make_unique<JetTagCollection>(ref2prod));
+    }
+  } else {
+    for (std::size_t i = 0; i < flav_names_.size(); i++) {
+      output_tags.emplace_back(std::make_unique<JetTagCollection>());
     }
   }
 
@@ -254,7 +296,6 @@ void BoostedJetONNXTritonJetTagsProducer::produce(edm::Event &iEvent, const edm:
       }
     }
   }
-
   // put into the event
   for (std::size_t flav_n = 0; flav_n < flav_names_.size(); ++flav_n) {
     iEvent.put(std::move(output_tags[flav_n]), flav_names_[flav_n]);
