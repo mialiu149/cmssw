@@ -254,7 +254,7 @@ void BoostedJetONNXTritonJetTagsProducer::acquire(edm::Event &iEvent, const edm:
       // run prediction and get outputs
       auto& input1 = iInput.begin()->second;
       auto data1 = std::make_shared<TritonInput<float>>();
-      input1.toServer(data1);// is the triton input data
+      input1.toServer(data_);// is the triton input data
       // outputs = globalCache()->run(input_names_, data_, input_shapes_)[0];
       assert(outputs.size() == flav_names_.size());
     }
