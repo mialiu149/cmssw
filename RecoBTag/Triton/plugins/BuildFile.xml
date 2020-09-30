@@ -1,0 +1,11 @@
+<use name="FWCore/Framework"/>
+<use name="FWCore/ParameterSet"/>
+<use name="FWCore/PluginManager"/>
+<use name="HeterogeneousCore/SonicCore"/>
+<use name="triton-inference-server"/>
+<use name="protobuf"/>
+<use name="json"/>
+<use name="DataFormats/BTauReco"/>
+<use name="PhysicsTools/ONNXRuntime"/>
+<use name="RecoBTag/FeatureTools"/>
+<flags EDM_PLUGIN="1"/>
