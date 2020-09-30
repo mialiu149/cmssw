@@ -245,8 +245,60 @@ void BoostedJetONNXTritonJetTagsProducer::acquire(edm::Event const&iEvent, const
       output_tags.emplace_back(std::make_unique<JetTagCollection>());
     }
   }
+    // use only one jet for now
+    const auto &taginfo = (*tag_infos)[0];
+    auto& input1 = iInput.at("sv_mask");
+    input1.shape() = {nnodes, input1.dims()[1]};
+    auto data1 = std::make_shared<TritonInput<float>>(1);
+    auto& vdata1 = (*data1)[0];
+    vdata1.reserve(input1.sizeShape());
 
-  for (unsigned jet_n = 0; jet_n < tag_infos->size(); ++jet_n) {
+    auto& input2 = iInput.at("sv_points");
+    input2.shape() = {input2.dims()[0], nedges};
+    auto data2 = std::make_shared<TritonInput<int64_t>>(1);
+    auto& vdata2 = (*data2)[0];
+    vdata2.reserve(input2.sizeShape());
+ 
+    auto& input3 = iInput.at("pf_mask");
+    input3.shape() = {input3.dims()[0], nedges};
+    auto data3 = std::make_shared<TritonInput<int64_t>>(1);
+    auto& vdata3 = (*data3)[0];
+    vdata3.reserve(input3.sizeShape());
+    
+    auto& input4 = iInput.at("pf_points");
+    input4.shape() = {input4.dims()[0], nedges};
+    auto data2 = std::make_shared<TritonInput<int64_t>>(1);
+    auto& vdata2 = (*data4)[0];
+    vdata4.reserve(input4.sizeShape());    
+    
+    auto& input5 = iInput.at("sv_features");
+    input5.shape() = {input5.dims()[0], nedges};
+    auto data5 = std::make_shared<TritonInput<int64_t>>(1);
+    auto& vdata5 = (*data5)[0];
+    vdata5.reserve(input5.sizeShape());
+        
+    auto& input6 = iInput.at("pf_features");
+    input6.shape() = {input6.dims()[0], nedges};
+    auto data6 = std::make_shared<TritonInput<int64_t>>(1);
+    auto& vdata6 = (*data6)[0];
+    vdata6.reserve(input6.sizeShape());
+
+    std::normal_distribution<float> randx(-10, 4);
+    for (unsigned i = 0; i < input1.sizeShape(); ++i) {
+      vdata1.push_back(randx(rng));
+    }
+    std::uniform_int_distribution<int> randedge(0, nnodes - 1);
+    for (unsigned i = 0; i < input2.sizeShape(); ++i) {
+      vdata2.push_back(randedge(rng));
+    }
+    // convert to server format
+    input1.toServer(data1);
+    input2.toServer(data2);
+    input3.toServer(data3);
+    input4.toServer(data4);
+    input5.toServer(data5);
+    input6.toServer(data6);/*
+for (unsigned jet_n = 0; jet_n < tag_infos->size(); ++jet_n) {
     const auto &taginfo = (*tag_infos)[jet_n];
     std::vector<float> outputs(flav_names_.size(), 0);  // init as all zeros
     if (!taginfo.features().empty()) {
@@ -255,6 +307,7 @@ void BoostedJetONNXTritonJetTagsProducer::acquire(edm::Event const&iEvent, const
       // run prediction and get outputs
       auto& input1 = iInput.begin()->second;
       auto data1 = std::make_shared<TritonInput<float>>();
+    
     for (unsigned i = 0; i < input1.batchSize(); ++i) {
       data1->emplace_back(input1.sizeDims(), 0.5f);
     }
@@ -268,7 +321,9 @@ void BoostedJetONNXTritonJetTagsProducer::acquire(edm::Event const&iEvent, const
       (*(output_tags[flav_n]))[jet_ref] = outputs[flav_n];
     }
   }
+*/
 }
+
 void BoostedJetONNXTritonJetTagsProducer::produce(edm::Event &iEvent, const edm::EventSetup &iSetup, Output const& iOutput) {
   edm::Handle<TagInfoCollection> tag_infos;
   iEvent.getByToken(src_, tag_infos);
