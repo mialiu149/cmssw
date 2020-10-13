@@ -54,7 +54,6 @@ public:
     for (unsigned i = 0; i < input2.sizeShape(); ++i) {
       vdata2.push_back(randedge(rng));
     }
-
     // convert to server format
     input1.toServer(data1);
     input2.toServer(data2);
@@ -74,6 +73,7 @@ public:
     }
     edm::LogInfo(client_.debugName()) << msg.str();
   }
+
   ~TritonGraphProducer() override = default;
 
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
